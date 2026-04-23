@@ -1,0 +1,90 @@
+<!doctype html>
+<!-- [Erlinda Annisa Zahra — 5027241108]: halaman HTML dashboard + struktur 3 panel. -->
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CryptoWatch — Monitor Pasar Aset Digital</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>💰 CryptoWatch</h1>
+    <p class="subtitle">Big Data Pipeline · Kafka → HDFS → Spark → Dashboard</p>
+    <div class="meta">
+      <span id="status-dot" class="dot"></span>
+      <span id="status-text">memuat…</span>
+      <span class="spacer"></span>
+      <span>API events: <b id="api-count">–</b></span>
+      <span>RSS events: <b id="rss-count">–</b></span>
+      <span>Last update: <b id="last-update">–</b></span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Panel 1: Harga terkini + persentase -->
+    <section class="panel" id="panel-prices">
+      <h2>Harga Terkini</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Simbol</th>
+            <th class="num">Harga USD</th>
+            <th class="num">Harga IDR</th>
+            <th class="num">Change 24h</th>
+            <th>Update</th>
+          </tr>
+        </thead>
+        <tbody id="prices-body">
+          <tr><td colspan="5" class="empty">Menunggu data live dari consumer…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Panel 2: Hasil Spark (statistik + chart volatilitas) -->
+    <section class="panel" id="panel-spark">
+      <h2>Hasil Analisis Spark</h2>
+
+      <h3>Statistik per Koin</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Simbol</th><th class="num">n</th>
+            <th class="num">avg USD</th><th class="num">max USD</th>
+            <th class="num">min USD</th><th class="num">stddev</th>
+            <th class="num">avg Δ24h</th>
+          </tr>
+        </thead>
+        <tbody id="stats-body">
+          <tr><td colspan="7" class="empty">Belum ada hasil Spark — jalankan spark/analysis.py</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Volatilitas vs Volume Berita per Jam</h3>
+      <div class="chart-wrap">
+        <canvas id="hourlyChart" height="110"></canvas>
+      </div>
+
+      <h3>MLlib — K-Means Regime &amp; Linear Regression</h3>
+      <div id="mllib-box" class="mllib-box">
+        <span class="empty">Menunggu hasil MLlib…</span>
+      </div>
+    </section>
+
+    <!-- Panel 3: Berita Terbaru -->
+    <section class="panel" id="panel-news">
+      <h2>Berita Terbaru</h2>
+      <ul id="news-list">
+        <li class="empty">Menunggu artikel RSS dari consumer…</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <small>Auto-refresh tiap 30 detik · ETS Big Data &amp; Data Lakehouse</small>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
