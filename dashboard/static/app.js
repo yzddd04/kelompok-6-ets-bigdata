@@ -24,24 +24,51 @@ function setStatus(ok, text) {
   txt.textContent = text;
 }
 
+function setHealth(apiCount, rssCount, hasSpark) {
+  const text = document.getElementById("health-text");
+  const foot = document.getElementById("health-foot");
+  if (apiCount > 0 && rssCount > 0 && hasSpark) {
+    text.textContent = "All Systems Go";
+    text.style.color = "var(--up)";
+    foot.textContent = "kafka · hdfs · spark · dashboard";
+  } else if (apiCount > 0 || rssCount > 0) {
+    text.textContent = "Streaming";
+    text.style.color = "var(--warn)";
+    foot.textContent = hasSpark ? "spark batch ok · stream live" : "tunggu spark batch";
+  } else {
+    text.textContent = "Idle";
+    text.style.color = "var(--muted)";
+    foot.textContent = "menunggu producer mengirim event";
+  }
+}
+
 function renderPrices(latest) {
-  const tbody = document.getElementById("prices-body");
+  const grid = document.getElementById("price-grid");
   if (!latest || latest.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty">Menunggu data live dari consumer…</td></tr>`;
+    grid.innerHTML = `<div class="empty-state">⏳ Menunggu data live dari consumer…</div>`;
     return;
   }
-  tbody.innerHTML = latest
+  grid.innerHTML = latest
     .sort((a, b) => a.symbol.localeCompare(b.symbol))
     .map(row => {
-      const cls = row.change_24h >= 0 ? "up" : "down";
-      const arrow = row.change_24h >= 0 ? "▲" : "▼";
-      return `<tr>
-        <td><b>${row.symbol}</b></td>
-        <td class="num">${fmt.usd(row.price_usd)}</td>
-        <td class="num">${fmt.idr(row.price_idr)}</td>
-        <td class="num ${cls}">${arrow} ${fmt.pct(row.change_24h)}</td>
-        <td>${fmt.time(row.timestamp)}</td>
-      </tr>`;
+      const sym = (row.symbol || "?").toUpperCase();
+      const cls = (row.change_24h ?? 0) >= 0 ? "up" : "down";
+      const arrow = (row.change_24h ?? 0) >= 0 ? "▲" : "▼";
+      const badgeCls = sym.toLowerCase().slice(0, 3);
+      return `
+        <div class="price-card">
+          <div class="symbol-badge ${badgeCls}">${sym.slice(0, 3)}</div>
+          <div class="price-info">
+            <div class="symbol">${sym}</div>
+            <div class="timestamp">${fmt.time(row.timestamp)}</div>
+            <span class="change-badge ${cls}">${arrow} ${fmt.pct(row.change_24h)}</span>
+          </div>
+          <div class="price-values">
+            <div class="usd">${fmt.usd(row.price_usd)}</div>
+            <div class="idr">${fmt.idr(row.price_idr)}</div>
+          </div>
+        </div>
+      `;
     }).join("");
 }
 
@@ -53,6 +80,7 @@ function renderStats(stats) {
   }
   tbody.innerHTML = stats.map(r => {
     const cls = (r.avg_change_pct ?? 0) >= 0 ? "up" : "down";
+    const arrow = (r.avg_change_pct ?? 0) >= 0 ? "▲" : "▼";
     return `<tr>
       <td><b>${r.symbol}</b></td>
       <td class="num">${r.n ?? "–"}</td>
@@ -60,7 +88,7 @@ function renderStats(stats) {
       <td class="num">${fmt.usd(r.max_usd)}</td>
       <td class="num">${fmt.usd(r.min_usd)}</td>
       <td class="num">${r.stddev_usd ?? "–"}</td>
-      <td class="num ${cls}">${fmt.pct(r.avg_change_pct)}</td>
+      <td class="num ${cls}">${arrow} ${fmt.pct(r.avg_change_pct)}</td>
     </tr>`;
   }).join("");
 }
@@ -68,13 +96,17 @@ function renderStats(stats) {
 function renderHourlyChart(vol, news) {
   const ctx = document.getElementById("hourlyChart").getContext("2d");
 
-  // Gabungkan berdasarkan hour_utc (0..23)
   const hours = Array.from({ length: 24 }, (_, h) => h);
   const volMap = Object.fromEntries((vol || []).map(r => [r.hour_utc, r.avg_abs_change_pct]));
   const newsMap = Object.fromEntries((news || []).map(r => [r.hour_utc, r.n_articles]));
 
   const volData = hours.map(h => volMap[h] ?? null);
   const newsData = hours.map(h => newsMap[h] ?? 0);
+
+  // Gradient untuk line
+  const lineGrad = ctx.createLinearGradient(0, 0, 0, 280);
+  lineGrad.addColorStop(0, "rgba(255,95,109,0.35)");
+  lineGrad.addColorStop(1, "rgba(255,95,109,0.0)");
 
   const data = {
     labels: hours.map(h => h.toString().padStart(2, "0") + ":00"),
@@ -84,20 +116,26 @@ function renderHourlyChart(vol, news) {
         label: "Volatilitas (|change_24h| %)",
         data: volData,
         yAxisID: "y",
-        borderColor: "#f85149",
-        backgroundColor: "rgba(248,81,73,0.15)",
-        borderWidth: 2,
-        tension: 0.25,
+        borderColor: "#ff5f6d",
+        backgroundColor: lineGrad,
+        borderWidth: 2.5,
+        tension: 0.35,
         pointRadius: 3,
+        pointBackgroundColor: "#ff5f6d",
+        pointBorderColor: "#0a0e17",
+        pointBorderWidth: 2,
+        pointHoverRadius: 6,
+        fill: true,
       },
       {
         type: "bar",
         label: "Jumlah Artikel RSS",
         data: newsData,
         yAxisID: "y1",
-        backgroundColor: "rgba(88,166,255,0.55)",
-        borderColor: "#58a6ff",
+        backgroundColor: "rgba(122, 167, 255, 0.55)",
+        borderColor: "#7aa7ff",
         borderWidth: 1,
+        borderRadius: 4,
       },
     ],
   };
@@ -107,24 +145,41 @@ function renderHourlyChart(vol, news) {
     maintainAspectRatio: false,
     interaction: { mode: "index", intersect: false },
     plugins: {
-      legend: { labels: { color: "#e6edf3" } },
-      tooltip: { mode: "index" },
+      legend: {
+        labels: {
+          color: "#e6edf6",
+          font: { family: "Inter", size: 12, weight: "600" },
+          padding: 14,
+          usePointStyle: true,
+          pointStyle: "circle",
+        }
+      },
+      tooltip: {
+        mode: "index",
+        backgroundColor: "rgba(15, 20, 32, 0.95)",
+        borderColor: "rgba(120, 140, 180, 0.22)",
+        borderWidth: 1,
+        titleFont: { family: "Inter", weight: "700" },
+        bodyFont: { family: "JetBrains Mono", size: 12 },
+        padding: 12,
+        cornerRadius: 8,
+      },
     },
     scales: {
       x: {
-        ticks: { color: "#8b949e" },
-        grid: { color: "rgba(255,255,255,0.05)" },
+        ticks: { color: "#8590a8", font: { family: "JetBrains Mono", size: 11 } },
+        grid: { color: "rgba(120, 140, 180, 0.06)" },
       },
       y: {
         type: "linear", position: "left",
-        title: { display: true, text: "Volatilitas (%)", color: "#8b949e" },
-        ticks: { color: "#f85149" },
-        grid: { color: "rgba(255,255,255,0.05)" },
+        title: { display: true, text: "Volatilitas (%)", color: "#ff5f6d", font: { family: "Inter", weight: "600" } },
+        ticks: { color: "#ff5f6d", font: { family: "JetBrains Mono", size: 11 } },
+        grid: { color: "rgba(120, 140, 180, 0.06)" },
       },
       y1: {
         type: "linear", position: "right",
-        title: { display: true, text: "Jumlah Artikel", color: "#8b949e" },
-        ticks: { color: "#58a6ff", precision: 0 },
+        title: { display: true, text: "Jumlah Artikel", color: "#7aa7ff", font: { family: "Inter", weight: "600" } },
+        ticks: { color: "#7aa7ff", precision: 0, font: { family: "JetBrains Mono", size: 11 } },
         grid: { drawOnChartArea: false },
       },
     },
@@ -140,40 +195,75 @@ function renderHourlyChart(vol, news) {
 }
 
 function renderMLlib(mllib) {
-  const box = document.getElementById("mllib-box");
+  const stats = document.getElementById("mllib-stats");
+  const clusters = document.getElementById("mllib-clusters");
   if (!mllib || !mllib.linear_regression) {
-    box.innerHTML = `<span class="empty">Menunggu hasil MLlib…</span>`;
+    stats.innerHTML = `<span class="empty">Menunggu hasil MLlib…</span>`;
+    clusters.innerHTML = "";
     return;
   }
   const lr = mllib.linear_regression || {};
   const km = mllib.kmeans || {};
-  const centers = (km.cluster_centers || [])
-    .map((c, i) => `<div class="kv"><span>Cluster ${i}</span><span>vol=${c[0].toFixed(2)}% · berita=${c[1].toFixed(1)}</span></div>`)
-    .join("");
-  box.innerHTML = `
-    <div class="kv"><span>LR slope (artikel → volatilitas)</span><span>${(lr.slope_n_articles ?? 0).toFixed(4)}</span></div>
-    <div class="kv"><span>R²</span><span>${(lr.r2 ?? 0).toFixed(4)}</span></div>
-    <div class="kv"><span>RMSE</span><span>${(lr.rmse ?? 0).toFixed(4)}</span></div>
-    <h3 style="margin-top:10px">K-Means (k=${km.k ?? "?"}) — centroid</h3>
-    ${centers || '<span class="empty">–</span>'}
+  const slope = lr.slope_n_articles ?? 0;
+  const slopeCls = slope >= 0 ? "up" : "down";
+
+  stats.innerHTML = `
+    <div class="cluster-title">Linear Regression</div>
+    <div class="mllib-metric">
+      <span class="label">Slope (artikel → volatilitas)</span>
+      <span class="value ${slopeCls}">${slope.toFixed(4)}</span>
+    </div>
+    <div class="mllib-metric">
+      <span class="label">R² (kekuatan korelasi)</span>
+      <span class="value">${(lr.r2 ?? 0).toFixed(4)}</span>
+    </div>
+    <div class="mllib-metric">
+      <span class="label">RMSE</span>
+      <span class="value">${(lr.rmse ?? 0).toFixed(4)}</span>
+    </div>
+    <div class="mllib-metric">
+      <span class="label">Intercept</span>
+      <span class="value">${(lr.intercept ?? 0).toFixed(4)}</span>
+    </div>
+  `;
+
+  const centers = (km.cluster_centers || []);
+  if (centers.length === 0) {
+    clusters.innerHTML = `<div class="cluster-title">K-Means</div><span class="empty">–</span>`;
+    return;
+  }
+  clusters.innerHTML = `
+    <div class="cluster-title">K-Means (k=${km.k ?? "?"}) — Centroid</div>
+    ${centers.map((c, i) => `
+      <div class="cluster-pill">
+        <span class="pill-label">Cluster ${i}</span>
+        <span class="pill-vals">vol ${c[0].toFixed(2)}% · ${c[1].toFixed(1)} berita</span>
+      </div>
+    `).join("")}
   `;
 }
 
 function renderNews(items) {
   const ul = document.getElementById("news-list");
+  const tag = document.getElementById("news-count-tag");
   if (!items || items.length === 0) {
     ul.innerHTML = `<li class="empty">Menunggu artikel RSS dari consumer…</li>`;
+    if (tag) tag.textContent = "0 artikel";
     return;
   }
-  ul.innerHTML = items.map(a => `
-    <li>
-      <a href="${a.link}" target="_blank" rel="noopener noreferrer">${a.title || "(tanpa judul)"}</a>
-      <div class="news-meta">
-        <span class="source-badge">${a.source || "rss"}</span>
-        ${a.published || fmt.time(a.timestamp)}
-      </div>
-    </li>
-  `).join("");
+  if (tag) tag.textContent = `${items.length} artikel`;
+  ul.innerHTML = items.map(a => {
+    const src = (a.source || "rss").toLowerCase().replace(/[^a-z]/g, "");
+    return `
+      <li>
+        <a href="${a.link}" target="_blank" rel="noopener noreferrer">${a.title || "(tanpa judul)"}</a>
+        <div class="news-meta">
+          <span class="source-badge ${src}">${a.source || "rss"}</span>
+          ${a.published || fmt.time(a.timestamp)}
+        </div>
+      </li>
+    `;
+  }).join("");
 }
 
 async function refresh() {
@@ -182,9 +272,14 @@ async function refresh() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const d = await res.json();
 
-    document.getElementById("api-count").textContent = d.live_api_count ?? 0;
-    document.getElementById("rss-count").textContent = d.live_rss_count ?? 0;
+    const apiCount = d.live_api_count ?? 0;
+    const rssCount = d.live_rss_count ?? 0;
+    const hasSpark = !!(d.spark && d.spark.stats_per_coin && d.spark.stats_per_coin.length);
+
+    document.getElementById("api-count").textContent = apiCount.toLocaleString();
+    document.getElementById("rss-count").textContent = rssCount.toLocaleString();
     document.getElementById("last-update").textContent = fmt.time(new Date().toISOString());
+    setHealth(apiCount, rssCount, hasSpark);
 
     renderPrices(d.latest_prices);
     renderStats(d.spark?.stats_per_coin);
@@ -195,7 +290,7 @@ async function refresh() {
     setStatus(true, "live");
   } catch (e) {
     console.error(e);
-    setStatus(false, "offline: " + e.message);
+    setStatus(false, "offline");
   }
 }
 

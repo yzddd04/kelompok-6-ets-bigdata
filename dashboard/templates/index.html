@@ -5,76 +5,109 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CryptoWatch — Monitor Pasar Aset Digital</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
-  <header>
-    <h1>💰 CryptoWatch</h1>
-    <p class="subtitle">Big Data Pipeline · Kafka → HDFS → Spark → Dashboard</p>
-    <div class="meta">
-      <span id="status-dot" class="dot"></span>
-      <span id="status-text">memuat…</span>
-      <span class="spacer"></span>
-      <span>API events: <b id="api-count">–</b></span>
-      <span>RSS events: <b id="rss-count">–</b></span>
-      <span>Last update: <b id="last-update">–</b></span>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <header class="hero">
+    <div class="hero-top">
+      <div class="brand">
+        <div class="brand-logo">💰</div>
+        <div>
+          <h1>CryptoWatch</h1>
+          <p class="subtitle">Big Data Pipeline · Kafka → HDFS → Spark → Dashboard</p>
+        </div>
+      </div>
+      <div class="status-pill" id="status-pill">
+        <span id="status-dot" class="dot"></span>
+        <span id="status-text">memuat…</span>
+      </div>
+    </div>
+
+    <div class="kpi-strip">
+      <div class="kpi-card">
+        <div class="kpi-label">API Events (live)</div>
+        <div class="kpi-value" id="api-count">–</div>
+        <div class="kpi-foot">CoinGecko · poll 60s</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">RSS Events (live)</div>
+        <div class="kpi-value" id="rss-count">–</div>
+        <div class="kpi-foot">CoinDesk · Cointelegraph</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Last Update</div>
+        <div class="kpi-value mono" id="last-update">–</div>
+        <div class="kpi-foot">auto-refresh tiap 30 detik</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Pipeline Health</div>
+        <div class="kpi-value" id="health-text">–</div>
+        <div class="kpi-foot" id="health-foot">memeriksa endpoint…</div>
+      </div>
     </div>
   </header>
 
   <main>
-    <!-- Panel 1: Harga terkini + persentase -->
-    <section class="panel" id="panel-prices">
-      <h2>Harga Terkini</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Simbol</th>
-            <th class="num">Harga USD</th>
-            <th class="num">Harga IDR</th>
-            <th class="num">Change 24h</th>
-            <th>Update</th>
-          </tr>
-        </thead>
-        <tbody id="prices-body">
-          <tr><td colspan="5" class="empty">Menunggu data live dari consumer…</td></tr>
-        </tbody>
-      </table>
+    <section class="panel panel-prices">
+      <div class="panel-head">
+        <h2><span class="panel-icon">📈</span> Harga Terkini</h2>
+        <span class="panel-tag">live · per simbol</span>
+      </div>
+      <div class="price-grid" id="price-grid">
+        <div class="empty-state">⏳ Menunggu data live dari consumer…</div>
+      </div>
     </section>
 
-    <!-- Panel 2: Hasil Spark (statistik + chart volatilitas) -->
-    <section class="panel" id="panel-spark">
-      <h2>Hasil Analisis Spark</h2>
+    <section class="panel panel-spark">
+      <div class="panel-head">
+        <h2><span class="panel-icon">⚡</span> Hasil Analisis Spark</h2>
+        <span class="panel-tag">batch · /data/crypto/hasil/</span>
+      </div>
 
       <h3>Statistik per Koin</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Simbol</th><th class="num">n</th>
-            <th class="num">avg USD</th><th class="num">max USD</th>
-            <th class="num">min USD</th><th class="num">stddev</th>
-            <th class="num">avg Δ24h</th>
-          </tr>
-        </thead>
-        <tbody id="stats-body">
-          <tr><td colspan="7" class="empty">Belum ada hasil Spark — jalankan spark/analysis.py</td></tr>
-        </tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Simbol</th><th class="num">n</th>
+              <th class="num">avg USD</th><th class="num">max USD</th>
+              <th class="num">min USD</th><th class="num">stddev</th>
+              <th class="num">avg Δ24h</th>
+            </tr>
+          </thead>
+          <tbody id="stats-body">
+            <tr><td colspan="7" class="empty">Belum ada hasil Spark — jalankan spark/analysis.py</td></tr>
+          </tbody>
+        </table>
+      </div>
 
       <h3>Volatilitas vs Volume Berita per Jam</h3>
       <div class="chart-wrap">
-        <canvas id="hourlyChart" height="110"></canvas>
+        <canvas id="hourlyChart" height="120"></canvas>
       </div>
 
-      <h3>MLlib — K-Means Regime &amp; Linear Regression</h3>
-      <div id="mllib-box" class="mllib-box">
-        <span class="empty">Menunggu hasil MLlib…</span>
+      <h3>MLlib — K-Means &amp; Linear Regression</h3>
+      <div class="mllib-grid">
+        <div class="mllib-stats" id="mllib-stats">
+          <span class="empty">Menunggu hasil MLlib…</span>
+        </div>
+        <div class="mllib-clusters" id="mllib-clusters"></div>
       </div>
     </section>
 
-    <!-- Panel 3: Berita Terbaru -->
-    <section class="panel" id="panel-news">
-      <h2>Berita Terbaru</h2>
+    <section class="panel panel-news">
+      <div class="panel-head">
+        <h2><span class="panel-icon">📰</span> Berita Terbaru</h2>
+        <span class="panel-tag" id="news-count-tag">0 artikel</span>
+      </div>
       <ul id="news-list">
         <li class="empty">Menunggu artikel RSS dari consumer…</li>
       </ul>
@@ -82,7 +115,13 @@
   </main>
 
   <footer>
-    <small>Auto-refresh tiap 30 detik · ETS Big Data &amp; Data Lakehouse</small>
+    <small>
+      <strong>CryptoWatch</strong> · ETS Big Data &amp; Data Lakehouse · ITS 2026
+      <span class="dot-sep">•</span>
+      Auto-refresh tiap 30 detik
+      <span class="dot-sep">•</span>
+      Kelompok 6
+    </small>
   </footer>
 
   <script src="/static/app.js"></script>
