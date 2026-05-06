@@ -157,12 +157,12 @@ def analisis_2_volatility_by_hour(spark: SparkSession, df_api: DataFrame) -> Dat
     df_api.createOrReplaceTempView("crypto_api")
     return spark.sql("""
         SELECT
-            HOUR(TO_TIMESTAMP(timestamp)) AS hour_utc,
+            MINUTE(TO_TIMESTAMP(timestamp)) AS hour_utc,
             ROUND(AVG(ABS(change_24h)), 4) AS avg_abs_change_pct,
             ROUND(STDDEV(price_usd), 4) AS stddev_price_usd,
             COUNT(*) AS n_events
         FROM crypto_api
-        GROUP BY HOUR(TO_TIMESTAMP(timestamp))
+        GROUP BY MINUTE(TO_TIMESTAMP(timestamp))
         ORDER BY hour_utc
     """)
 
@@ -174,11 +174,11 @@ def analisis_3_news_by_hour(spark: SparkSession, df_rss: DataFrame) -> DataFrame
     df_rss.createOrReplaceTempView("crypto_rss")
     return spark.sql("""
         SELECT
-            HOUR(TO_TIMESTAMP(timestamp)) AS hour_utc,
+            MINUTE(TO_TIMESTAMP(timestamp)) AS hour_utc,
             COUNT(*) AS n_articles,
             COUNT(DISTINCT source) AS n_sources
         FROM crypto_rss
-        GROUP BY HOUR(TO_TIMESTAMP(timestamp))
+        GROUP BY MINUTE(TO_TIMESTAMP(timestamp))
         ORDER BY hour_utc
     """)
 
