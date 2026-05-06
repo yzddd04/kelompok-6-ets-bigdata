@@ -458,19 +458,19 @@ docker compose -f docker-compose-hadoop.yml down -v
 > Lampirkan screenshot berikut di folder `docs/screenshots/` dan referensikan di sini.
 
 1. **Kafka UI** menampilkan 2 topic aktif (`crypto-api`, `crypto-rss`) dengan message count > 0
-   → `docs/screenshots/kafka-ui.png`
+   ![Kafka UI](docs/screenshots/kafka-ui.png)
 2. **kafka-console-consumer output** menampilkan event JSON dari kedua topic
-   → `docs/screenshots/kafka-console.png`
+   ![Kafka Console](docs/screenshots/kafka-console.png)
 3. **HDFS Web UI** (http://localhost:9870) menampilkan folder `/data/crypto/` dengan file JSON timestamp
-   → `docs/screenshots/hdfs-webui.png`
+   ![HDFS Web UI](docs/screenshots/hdfs-webui.png)
 4. **Terminal `hdfs dfs -ls -R /data/crypto/`** menampilkan struktur dan ukuran file
-   → `docs/screenshots/hdfs-cli.png`
+   ![HDFS CLI](docs/screenshots/hdfs-cli.png)
 5. **Spark output** dari analysis.ipynb — tabel `show()` untuk 3 analisis + output MLlib
-   → `docs/screenshots/spark-analysis.png`
+   ![Spark Analysis](docs/screenshots/spark-analysis.png)
 6. **Dashboard** (http://localhost:5000) menampilkan data nyata + chart
-   → `docs/screenshots/dashboard.png`
+   ![Dashboard](docs/screenshots/dashboard.png)
 7. **`kafka-consumer-groups --describe`** menampilkan consumer group `crypto-hdfs-sink` + LAG
-   → `docs/screenshots/kafka-group.png`
+   ![Kafka Group](docs/screenshots/kafka-group.png)
 
 Perintah untuk menampilkan consumer group:
 ```bash
